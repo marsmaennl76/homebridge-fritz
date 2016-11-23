@@ -466,16 +466,50 @@ FritzThermostatAccessory.prototype.getCurrentHeatingCoolingState = function(call
     });
 };
 
+FritzThermostatAccessory.prototype.getAutoModeAndTemperatures = function(currentTemp) {
+    if (currentTemp === undefined)
+        this.log.warn("Invalid use of getAutoModeAndTemperatures - missing currentTemp parameter");
+
+    promise.all(
+        this.platform.fritz('getTempComfort', this.ain),
+        this.platform.fritz('getTempNight', this.ain),
+        this.platform.fritz('getDevice', this.ain)
+    ).then(function(comfortTemp, nightTemp, device) {
+        // assume AUTO mode unless we can find out differently
+        var state = Characteristic.TargetHeatingCoolingState.AUTO;
+
+        // Thermostat - API v6.60
+        if (device.nextchange) {
+            /* jshint laxbreak:true */
+            var currentAutoTemp = device.nextchange.tchange == comfortTemp
+                ? nightTemp
+                : comfortTemp;
+
+            if (currentAutoTemp !== currentTemp)
+                state = Characteristic.TargetHeatingCoolingState.HEAT;
+
+            // state, currentAutoTemp, nextAutoTemp
+            return [state, currentAutoTemp, device.nextchange.tchange];
+        }
+
+        return [state];
+    });
+};
+
 FritzThermostatAccessory.prototype.getTargetHeatingCoolingState = function(callback) {
     this.platform.log("Getting thermostat " + this.ain + " target heating state");
+    var self = this;
 
     this.platform.fritz('getTempTarget', this.ain).then(function(temp) {
         if (temp == 'off')
             callback(null, Characteristic.TargetHeatingCoolingState.OFF);
-        if (temp == 'on')
+        else if (temp == 'on')
             callback(null, Characteristic.TargetHeatingCoolingState.HEAT);
-        else
-            callback(null, Characteristic.TargetHeatingCoolingState.AUTO);
+        else {
+            self.getAutoModeAndTemperatures(temp).spread(function(state) {
+                callback(null, state);
+            });
+        }
     });
 };
 
@@ -484,25 +518,33 @@ FritzThermostatAccessory.prototype.setTargetHeatingCoolingState = function(state
         return;
 
     this.platform.log("Setting thermostat " + this.ain + " heating state");
+    var self = this;
 
-    var temp;
     switch (state) {
         case Characteristic.TargetHeatingCoolingState.OFF:
         case Characteristic.TargetHeatingCoolingState.COOL:
-            temp = 'off';
+            this.platform.fritz('setTempTarget', this.ain, 'off').then(function() {
+                callback(null, state);
+            });
             break;
         case Characteristic.TargetHeatingCoolingState.HEAT:
-            temp = 'on';
+            this.platform.fritz('setTempTarget', this.ain, 'on').then(function() {
+                callback(null, state);
+            });
             break;
         case Characteristic.TargetHeatingCoolingState.AUTO:
-            this.platform.log("Heating state 'auto' not supported");
+            // this.platform.log("Heating state 'auto' not supported");
+            this.platform.fritz('getTempTarget', this.ain).then(function(temp) {
+                self.getAutoModeAndTemperatures(temp).spread(function(state, currentAutoTemp) {
+                    if (state == Characteristic.TargetHeatingCoolingState.HEAT) {
+                        // switch to auto temp
+                        self.platform.fritz('setTempTarget', self.ain, currentAutoTemp).then(function() {
+                            callback(null, state);
+                        });
+                    }
+                });
+            });
             break;
-    }
-
-    if (temp !== null) {
-        this.platform.fritz('setTempTarget', this.ain, temp).then(function(temp) {
-            callback(null, state);
-        });
     }
 };
 
