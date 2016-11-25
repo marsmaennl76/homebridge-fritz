@@ -61,7 +61,7 @@ To enable debugging run homebridge with `-D` option:
 ## Common Issues / Frequently Asked Questions
 
   1. homebridge-fritz can't login to the FritzBox
-  
+
     Some users have reported that logging into the FritzBox internally via `https` fails. This seems to be caused by the FritzApp *occupying* the same port.
     In this case you can connect internally via `http` or use the external IP.
 
@@ -73,30 +73,18 @@ To enable debugging run homebridge with `-D` option:
 
     indicate that there are SSL security problems- most likely due to self-signed certificates. Use the `"strictSSL": false` option to disable the respective check.
 
-  
+
   2. homebridge-fritz is not able to update my thermostat
-  
-    Current FritzBox firmwares seem to ignore API updates when the thermostat has been key-locked. 
+
+    Current FritzBox firmwares seem to ignore API updates when the thermostat has been key-locked.
     No workaround available- please contact AVM to change this behaviour or don't use the locking mechanism.
 
 
   3. homebridge-fritz can login but not update thermostat battery charge
 
-    Battery charge is not an API function. That means that the user must have access to FritzBox administration, not only to the SmartHome API in order to use this functionality. 
-    Update your Fritz!Box user accordingly. 
+    Battery charge is not an API function. That means that the user must have access to FritzBox administration, not only to the SmartHome API in order to use this functionality.
+    Update your Fritz!Box user accordingly.
 
-
-## Common Issues / Frequently Asked Questions
-
-  1. homebridge-fritz can't login to the FritzBox
-  
-    Some users have reported that logging into the FritzBox internally via `https` fails. This seems to be caused by the FritzApp *occupying* the same port.
-    In this case you can connect internally via `http` or use the external IP.
-  
-  2. homebridge-fritz is not able to update my thermostat
-  
-    Current FritzBox firmwares seem to ignore API updates when the thermostat has been key-locked. 
-    No workaround available- please contact AVM to change this behaviour or don't use the locking mechanism.
 
 ## Acknowledgements
 
