@@ -10,6 +10,7 @@ var promise = require('bluebird');
 var isWebUri = require('valid-url').isWebUri;
 var inherits = require('util').inherits;
 var extend = require('extend');
+var cache = require('memory-cache');
 var Service, Characteristic;
 
 module.exports = function(homebridge) {
@@ -189,6 +190,23 @@ FritzPlatform.prototype = {
         });
 
         return this.promise;
+    },
+
+    fritzCached: function(func, ttl) {
+        var args = Array.prototype.slice.call(arguments, 2);
+        var funcArgs = [func].concat(args);
+        var key = funcArgs.concat(this.options);
+
+        var res = cache.get(key);
+
+        if (res !== null) {
+            return res;
+        }
+
+        return this.fritz.apply(this, funcArgs).then(function(res) {
+            cache.put(key, ttl);
+            return res;
+        });
     }
 };
 
